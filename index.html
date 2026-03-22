@@ -393,6 +393,9 @@ function mypAddon(){
   return a;
 }
 
+// ── Salad price lookup ────────────────────────────────────────
+const saladPrices={};
+
 // ── Build food section ────────────────────────────────────────
 function buildFood(){
   const body=document.getElementById('food-body');
@@ -532,9 +535,6 @@ function buildDrinks(){
   });
   body.innerHTML=html;
 }
-
-// ── Salad price lookup ────────────────────────────────────────
-const saladPrices={};
 
 // ── Total ─────────────────────────────────────────────────────
 function updateTotal(){
