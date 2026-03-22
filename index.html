@@ -145,7 +145,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);}
 .cal-btn{display:block;width:100%;background:var(--ink);color:var(--cream);border:none;border-radius:var(--r);padding:12px 20px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;text-align:center;margin-bottom:8px;text-decoration:none;transition:background .15s;}
 .cal-btn:hover{background:#2c2926;}
 /* ADMIN TEST BANNER */
-.admin-banner{background:#856404;color:#fff;padding:10px 20px;font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:95;display:none;}
+.admin-banner{background:#856404;color:#fff;padding:10px 20px;font-size:12px;font-weight:500;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:95;display:none;}
 .admin-banner.show{display:flex;}
 .admin-banner-left{display:flex;align-items:center;gap:8px;}
 .admin-banner-dismiss{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;}
@@ -262,7 +262,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);}
 </div>
 <div class="toast" id="toast"></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // ── CONFIG ────────────────────────────────────────────────────
 const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL';
 
@@ -810,4 +810,14 @@ async function submitOrder(){
   } catch(err) {
     document.getElementById('submitting-overlay').classList.remove('show');
     document.getElementById('btn-submit').disabled=false;
-    showToast('Submi
+    showToast('Submission failed: '+(err.message||'Please try again.'));
+    console.error('Submit error:',err);
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+buildFood();
+buildDrinks();
+buildNav();
+updateTotal();
+i
