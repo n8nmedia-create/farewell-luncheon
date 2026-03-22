@@ -269,7 +269,7 @@ let allOrders = [];
 async function checkAuth() {
   if (!TOKEN) return showAuthError('No access token found. Please use the link sent to you by the organizer.');
   try {
-    const res  = await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'verify_token',token:TOKEN}),redirect:'follow'});
+    const res  = await fetch(APPS_SCRIPT_URL,{method:'POST',redirect:'follow',body:JSON.stringify({action:'verify_token',token:TOKEN}),redirect:'follow'});
     const data = await res.json();
     if (!data.valid) return showAuthError('This access link is invalid or has been revoked.');
     document.getElementById('organizer-email').textContent = data.email || '';
@@ -291,7 +291,7 @@ async function loadOrders() {
   const btn = document.getElementById('btn-refresh');
   btn.disabled = true; btn.textContent = '↻ Loading…';
   try {
-    const res  = await fetch(APPS_SCRIPT_URL,{method:'POST',redirect:'follow',body:JSON.stringify({action:'get_orders',token:TOKEN}),redirect:'follow'});
+    const res  = await fetch(APPS_SCRIPT_URL,{method:'POST',redirect:'follow',body:JSON.stringify({action:'get_orders',token:TOKEN})});
     const data = await res.json();
     if (data.error) { showToast('Error: '+data.error); return; }
     allOrders = data.orders || [];
@@ -391,7 +391,7 @@ async function togglePaid(rowIndex) {
   const btn = document.getElementById('ptbtn-'+rowIndex);
   btn.disabled=true; const old=btn.textContent; btn.textContent='…';
   try {
-    const res  = await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'toggle_paid',token:TOKEN,rowIndex})});
+    const res  = await fetch(APPS_SCRIPT_URL,{method:'POST',redirect:'follow',body:JSON.stringify({action:'toggle_paid',token:TOKEN,rowIndex})});
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     const order = allOrders.find(o=>o.rowIndex===rowIndex);
@@ -426,7 +426,7 @@ async function sendReminderAll() {
   const btn=document.getElementById('btn-reminder');
   btn.disabled=true; btn.textContent='📩 Sending…';
   try {
-    const res  = await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'send_reminders',token:TOKEN,orders:unpaid})});
+    const res  = await fetch(APPS_SCRIPT_URL,{method:'POST',redirect:'follow',body:JSON.stringify({action:'send_reminders',token:TOKEN,orders:unpaid})});
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     showToast('Reminders sent to '+unpaid.length+' guest(s) ✓');
@@ -612,7 +612,7 @@ async function emailKitchenSheet(){
   btn.disabled=true; btn.textContent='📧 Sending…';
   const htmlContent=buildKitchenSheetHTML(allOrders);
   try{
-    const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'email_kitchen_sheet',token:TOKEN,htmlContent})});
+    const res=await fetch(APPS_SCRIPT_URL,{method:'POST',redirect:'follow',body:JSON.stringify({action:'email_kitchen_sheet',token:TOKEN,htmlContent})});
     const data=await res.json();
     if(data.error)throw new Error(data.error);
     showToast('Kitchen sheet emailed to organizers ✓');
@@ -626,7 +626,7 @@ async function deleteTestOrder(rowIndex) {
   const btn = document.getElementById('delbtn-'+rowIndex);
   if (btn) { btn.disabled=true; btn.textContent='…'; }
   try {
-    const res  = await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'delete_order',token:TOKEN,rowIndex})});
+    const res  = await fetch(APPS_SCRIPT_URL,{method:'POST',redirect:'follow',body:JSON.stringify({action:'delete_order',token:TOKEN,rowIndex})});
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     // Remove card from UI and from allOrders
