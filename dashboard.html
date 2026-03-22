@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farewell Luncheon — Organizer Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1c1917;--cream:#faf7f2;--warm:#f5f0e8;--border:#e2d9cc;--gold:#b8873a;--gold-lt:#f0e6d0;--red:#c0392b;--muted:#7a6f63;--green:#27ae60;--green-lt:#eafaf1;--orange:#e67e22;--orange-lt:#fef9e7;--r:6px;--navy:#1a1a2e;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:#f0ede8;color:var(--ink);min-height:100vh;}
+/* AUTH */
+#auth{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy);}
+.auth-box{background:#fff;border-radius:12px;padding:40px 36px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.auth-ico{font-size:36px;margin-bottom:16px;}
+.auth-ttl{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;margin-bottom:6px;}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.5;}
+.auth-err{font-size:12px;color:var(--red);background:#fdf0ef;border:1px solid #f5c6c2;border-radius:var(--r);padding:10px 14px;margin-bottom:16px;display:none;}
+.auth-err.show{display:block;}
+.auth-spin{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:13px;}
+.spin{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0;}
+.spin.lg{width:36px;height:36px;border-width:3px;}
+@keyframes sp{to{transform:rotate(360deg);}}
+/* DASH */
+#dash{display:none;}
+.topbar{background:var(--navy);color:var(--cream);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,.2);}
+.topbar-l{display:flex;align-items:center;gap:12px;}
+.topbar-ttl{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;}
+.topbar-badge{font-size:10px;background:rgba(184,135,58,.2);color:var(--gold);border:1px solid rgba(184,135,58,.3);padding:3px 10px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase;}
+.topbar-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.topbar-em{font-size:11px;color:rgba(250,247,242,.5);}
+.btn{border:none;border-radius:var(--r);padding:6px 12px;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;}
+.btn-gold{background:rgba(184,135,58,.15);color:var(--gold);border:1px solid rgba(184,135,58,.3);}
+.btn-gold:hover{background:rgba(184,135,58,.3);}
+.btn-green{background:rgba(39,174,96,.15);color:var(--green);border:1px solid rgba(39,174,96,.3);}
+.btn-green:hover{background:rgba(39,174,96,.3);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+/* SHELL */
+.shell{max-width:1100px;margin:0 auto;padding:24px 20px 60px;}
+/* KPIs */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:24px;}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.kpi.k-total::before{background:var(--gold);}
+.kpi.k-paid::before{background:var(--green);}
+.kpi.k-unpaid::before{background:var(--orange);}
+.kpi.k-guests::before{background:var(--navy);}
+.kpi-lbl{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.kpi-val{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:600;line-height:1;}
+.kpi.k-total .kpi-val{color:var(--gold);}
+.kpi.k-paid .kpi-val{color:var(--green);}
+.kpi.k-unpaid .kpi-val{color:var(--orange);}
+.kpi.k-guests .kpi-val{color:var(--navy);}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:6px;}
+/* SECTION HEADING */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+.sh h2{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;}
+.sh .cnt{font-size:12px;color:var(--muted);background:var(--warm);border:1px solid var(--border);padding:3px 10px;border-radius:20px;}
+/* GUEST CARDS */
+#glist{display:flex;flex-direction:column;gap:12px;margin-bottom:32px;}
+.gc{background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:box-shadow .15s;}
+.gc:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+.gc-hd{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none;}
+.gc-av{width:40px;height:40px;border-radius:50%;background:var(--navy);color:var(--gold);font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.gc-meta{flex:1;min-width:0;}
+.gc-name{font-size:14px;font-weight:600;margin-bottom:4px;}
+.gc-contacts{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;}
+.clink{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:20px;text-decoration:none;transition:all .15s;white-space:nowrap;}
+.clink.email{background:#e8f4fd;color:#1565c0;border:1px solid rgba(21,101,192,.2);}
+.clink.email:hover{background:#bbdefb;}
+.clink.phone{background:#e8f5e9;color:#2e7d32;border:1px solid rgba(46,125,50,.2);}
+.clink.phone:hover{background:#c8e6c9;}
+.gc-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.gc-tot{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--ink);}
+.pay-tog{border:none;border-radius:20px;padding:5px 14px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.pay-tog.unpaid{background:var(--orange-lt);color:var(--orange);border:1px solid rgba(230,126,34,.3);}
+.pay-tog.unpaid:hover{background:#fde3c4;}
+.pay-tog.paid{background:var(--green-lt);color:var(--green);border:1px solid rgba(39,174,96,.3);}
+.pay-tog.paid:hover{background:#c8f0d8;}
+.pay-tog:disabled{opacity:.6;cursor:not-allowed;}
+.gc-chev{font-size:10px;color:var(--muted);transition:transform .2s;flex-shrink:0;}
+.gc.open .gc-chev{transform:rotate(90deg);}
+.gc-items{display:none;border-top:1px solid var(--border);background:var(--cream);}
+.gc.open .gc-items{display:block;}
+.gc-items-in{padding:14px 18px;}
+.irow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid rgba(226,217,204,.4);font-size:13px;}
+.irow:last-child{border-bottom:none;}
+.itot{display:flex;justify-content:space-between;align-items:center;padding:10px 0 0;margin-top:4px;border-top:2px solid var(--border);font-weight:600;font-size:14px;}
+.itot span:last-child{color:var(--gold);}
+.myp-det{margin-top:10px;padding:12px 14px;background:#fff8ec;border:1px solid #ffe0a0;border-radius:var(--r);border-left:3px solid var(--gold);}
+.myp-det-ttl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;}
+.myp-det-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--ink);margin-bottom:4px;}
+.myp-det-row:last-child{margin-bottom:0;}
+.myp-det-lbl{font-weight:600;min-width:60px;color:var(--muted);}
+/* ITEMS TABLE */
+.itable{background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.itable-hd{display:grid;grid-template-columns:1fr 60px 100px;background:var(--navy);padding:10px 18px;}
+.itable-hd span{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(250,247,242,.6);}
+.itable-hd span:nth-child(2){text-align:center;}
+.itable-hd span:last-child{text-align:right;}
+.itable-row{display:grid;grid-template-columns:1fr 60px 100px;padding:10px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .1s;}
+.itable-row:last-child{border-bottom:none;}
+.itable-row:hover{background:var(--warm);}
+.itable-row span:nth-child(2){text-align:center;font-weight:600;color:var(--navy);}
+.itable-row span:last-child{text-align:right;font-weight:500;color:var(--gold);}
+.itable-ft{display:grid;grid-template-columns:1fr 60px 100px;padding:12px 18px;background:var(--warm);border-top:2px solid var(--border);}
+.itable-ft span{font-size:13px;font-weight:700;}
+.itable-ft span:nth-child(2){text-align:center;}
+.itable-ft span:last-child{text-align:right;color:var(--gold);}
+/* MYP KITCHEN */
+.myp-kitchen{background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-top:16px;}
+.myp-kitchen-hd{background:var(--gold);padding:10px 18px;}
+.myp-kitchen-hd span{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);}
+.myp-kitchen-row{padding:10px 18px;border-bottom:1px solid var(--border);font-size:12px;}
+.myp-kitchen-row:last-child{border-bottom:none;}
+.myp-kitchen-guest{font-weight:700;color:var(--ink);margin-bottom:3px;font-size:13px;}
+.myp-kitchen-det{color:var(--muted);}
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-ov.show{display:flex;}
+.modal-box{background:#fff;border-radius:10px;width:100%;max-width:720px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.modal-hd{background:var(--navy);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.modal-hd h3{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--cream);}
+.modal-close{background:rgba(255,255,255,.1);color:var(--cream);border:none;border-radius:4px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.modal-close:hover{background:rgba(255,255,255,.2);}
+.modal-body{overflow-y:auto;padding:24px;flex:1;}
+.modal-actions{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;flex-shrink:0;flex-wrap:wrap;}
+.btn-action{border:none;border-radius:var(--r);padding:10px 20px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;}
+.btn-action.print{background:var(--navy);color:var(--cream);}
+.btn-action.print:hover{background:#2d2d4e;}
+.btn-action.email{background:var(--gold);color:var(--ink);}
+.btn-action.email:hover{background:#d4a044;}
+.btn-action:disabled{opacity:.6;cursor:not-allowed;}
+/* KITCHEN SHEET STYLES */
+.ks-hdr{text-align:center;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid var(--navy);}
+.ks-hdr h2{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;color:var(--navy);margin-bottom:4px;}
+.ks-hdr p{font-size:12px;color:var(--muted);}
+.ks-meta{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap;}
+.ks-meta span{font-size:12px;color:var(--muted);}
+.ks-sec{margin-bottom:20px;}
+.ks-sec-ttl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+.ks-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.ks-tbl th{text-align:left;padding:7px 10px;background:var(--navy);color:#fff;font-size:10px;}
+.ks-tbl th:last-child{text-align:right;}
+.ks-tbl td{padding:6px 10px;border-bottom:1px solid var(--border);}
+.ks-tbl tr:nth-child(even) td{background:var(--cream);}
+.ks-tbl td:last-child{text-align:right;font-weight:600;}
+.ks-myp{background:#fff8ec;border:1px solid #ffe0a0;border-radius:4px;padding:10px 12px;margin-bottom:6px;}
+.ks-myp-name{font-weight:700;font-size:12px;margin-bottom:3px;}
+.ks-myp-det{font-size:11px;color:var(--muted);line-height:1.5;}
+.ks-tot{background:var(--navy);color:#fff;padding:10px 14px;border-radius:4px;display:flex;justify-content:space-between;align-items:center;font-weight:700;margin-top:14px;}
+.ks-tot span:last-child{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold);}
+.ks-guest{margin-bottom:10px;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.ks-guest-hd{background:var(--warm);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;}
+.ks-guest-name{font-weight:700;font-size:12px;}
+.ks-guest-st{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;}
+.ks-guest-st.paid{background:#d4edda;color:#155724;}
+.ks-guest-st.unpaid{background:#fff3cd;color:#856404;}
+.ks-guest-items{padding:6px 12px;}
+.ks-guest-item{display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px solid rgba(226,217,204,.3);}
+.ks-guest-item:last-child{border-bottom:none;}
+/* LOADING / EMPTY */
+.loading{display:flex;flex-direction:column;align-items:center;gap:14px;padding:60px 20px;color:var(--muted);font-size:13px;}
+.empty{text-align:center;padding:48px 20px;color:var(--muted);}
+.empty-ico{font-size:40px;margin-bottom:12px;}
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 20px;border-radius:var(--r);font-size:12px;font-weight:500;z-index:999;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+/* PRINT */
+#print-ks{display:none;}
+@media print{body>*:not(#print-ks){display:none!important;}#print-ks{display:block!important;position:fixed;inset:0;background:#fff;padding:24px;font-family:Arial,sans-serif;z-index:9999;overflow:auto;}}
+@media(max-width:600px){.kpi-grid{grid-template-columns:1fr 1fr;}.gc-hd{flex-wrap:wrap;}.topbar{padding:0 14px;}.shell{padding:16px 12px 60px;}.gc-right{flex-wrap:wrap;gap:6px;}}
+</style>
+</head>
+<body>
+
+<div id="auth">
+  <div class="auth-box">
+    <div class="auth-ico">&#128274;</div>
+    <div class="auth-ttl">Organizer Access</div>
+    <div class="auth-sub">Farewell Luncheon Dashboard<br>Verifying your access link&hellip;</div>
+    <div class="auth-err" id="auth-err"></div>
+    <div class="auth-spin" id="auth-spin"><div class="spin"></div><span>Checking token&hellip;</span></div>
+  </div>
+</div>
+
+<div id="dash">
+  <div class="topbar">
+    <div class="topbar-l">
+      <div class="topbar-ttl">&#127881; Luncheon Dashboard</div>
+      <div class="topbar-badge">Organizer</div>
+    </div>
+    <div class="topbar-r">
+      <div class="topbar-em" id="org-email"></div>
+      <button class="btn btn-green" id="btn-remind" onclick="sendReminders()">&#128233; Send Reminders</button>
+      <button class="btn btn-gold" id="btn-ks" onclick="openKS()" style="background:rgba(184,135,58,.25);border-color:rgba(184,135,58,.5);">&#127869;&#65039; Kitchen Sheet</button>
+      <button class="btn btn-gold" id="btn-refresh" onclick="loadOrders()">&#8635; Refresh</button>
+    </div>
+  </div>
+
+  <div class="shell">
+    <div class="kpi-grid">
+      <div class="kpi k-guests"><div class="kpi-lbl">Total Guests</div><div class="kpi-val" id="kpi-guests">&#8212;</div><div class="kpi-sub">submitted orders</div></div>
+      <div class="kpi k-paid"><div class="kpi-lbl">Paid</div><div class="kpi-val" id="kpi-paid">&#8212;</div><div class="kpi-sub" id="kpi-paid-amt">&#8212;</div></div>
+      <div class="kpi k-unpaid"><div class="kpi-lbl">Unpaid</div><div class="kpi-val" id="kpi-unpaid">&#8212;</div><div class="kpi-sub" id="kpi-unpaid-amt">&#8212;</div></div>
+      <div class="kpi k-total"><div class="kpi-lbl">Total Due</div><div class="kpi-val" id="kpi-total">&#8212;</div><div class="kpi-sub">all orders combined</div></div>
+    </div>
+
+    <div class="sh"><h2>Guest Orders</h2><span class="cnt" id="guest-cnt">Loading&hellip;</span></div>
+    <div id="glist"><div class="loading"><div class="spin lg"></div><span>Loading orders&hellip;</span></div></div>
+
+    <div class="sh" style="margin-top:8px"><h2>Items Ordered</h2><span class="cnt" id="items-cnt">&#8212;</span></div>
+    <div id="items-sum"><div class="loading"><div class="spin lg"></div></div></div>
+  </div>
+</div>
+
+<!-- Kitchen Sheet Modal -->
+<div class="modal-ov" id="ks-modal" onclick="if(event.target===this)closeKS()">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <h3>&#127869;&#65039; Kitchen Order Sheet</h3>
+      <button class="modal-close" onclick="closeKS()">&#10005; Close</button>
+    </div>
+    <div class="modal-body" id="ks-content"></div>
+    <div class="modal-actions">
+      <button class="btn-action print" onclick="printKS()">&#128424;&#65039; Download / Print PDF</button>
+      <button class="btn-action email" id="btn-email-ks" onclick="emailKS()">&#128231; Email to Organizer</button>
+    </div>
+  </div>
+</div>
+
+<div id="print-ks"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var ASU='https://script.google.com/macros/s/AKfycbyVAXSiFTvDt4u4Rl78zD9UBoODSPmt0xjn2lvrj-kfskKmBXgZqoIGAxO9GmB8taWq/exec';
+var params=new URLSearchParams(window.location.search);
+var TOKEN=params.get('token')||'';
+var allOrders=[];
+
+function krw(n){return '\u20A9'+(Number(n)||0).toLocaleString('ko-KR');}
+function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},3500);}
+
+function fetchJSON(url,opts,retries){
+  retries=retries||3;
+  var options=opts||{};
+  var isPost=options.method==='POST';
+  if(isPost){
+    options.redirect='follow';
+    options.credentials='omit';
+    options.headers={'Content-Type':'text/plain'};
+  }
+  if(!isPost){
+    return gasGet(url,retries);
+  }
+  return fetch(url,options)
+    .then(function(r){return r.text();})
+    .then(function(text){
+      try{return JSON.parse(text);}
+      catch(e){throw new Error('Bad JSON');}
+    })
+    .catch(function(err){
+      if(retries>1)return new Promise(function(res){setTimeout(res,1000);}).then(function(){return fetchJSON(url,opts,retries-1);});
+      throw err;
+    });
+}
+
+function gasGet(url,retries){
+  return new Promise(function(resolve,reject){
+    var cb='cb'+Date.now();
+    var script=document.createElement('script');
+    var timer=setTimeout(function(){
+      delete window[cb];
+      script.remove();
+      if(retries>1){gasGet(url,retries-1).then(resolve).catch(reject);}
+      else{reject(new Error('Timeout'));}
+    },8000);
+    window[cb]=function(data){
+      clearTimeout(timer);
+      delete window[cb];
+      script.remove();
+      resolve(data);
+    };
+    script.src=url+(url.indexOf('?')>=0?'&':'?')+'callback='+cb;
+    script.onerror=function(){
+      clearTimeout(timer);
+      delete window[cb];
+      if(retries>1){gasGet(url,retries-1).then(resolve).catch(reject);}
+      else{reject(new Error('Script error'));}
+    };
+    document.head.appendChild(script);
+  });
+}
+
+function checkAuth(){
+  if(!TOKEN)return showAuthErr('No access token found. Please use the link sent to you.');
+  Promise.all([
+    fetchJSON(ASU,{method:'POST',body:JSON.stringify({action:'verify_token',token:TOKEN})}),
+    fetchJSON(ASU,{method:'POST',body:JSON.stringify({action:'get_orders',token:TOKEN})})
+  ])
+  .then(function(results){
+    var auth=results[0],ordersData=results[1];
+    if(!auth.valid)return showAuthErr('This access link is invalid or has been revoked.');
+    document.getElementById('org-email').textContent=auth.email||'';
+    document.getElementById('auth').style.display='none';
+    document.getElementById('dash').style.display='block';
+    allOrders=ordersData.orders||[];
+    renderDash();
+  })
+  .catch(function(){showAuthErr('Could not connect. Please check your internet and try again.');});
+}
+
+function showAuthErr(m){
+  document.getElementById('auth-spin').style.display='none';
+  var el=document.getElementById('auth-err');
+  el.textContent=m;el.classList.add('show');
+}
+
+function loadOrders(){
+  var btn=document.getElementById('btn-refresh');
+  btn.disabled=true;btn.textContent='\u8635 Loading\u2026';
+  fetchJSON(ASU,{method:'POST',body:JSON.stringify({action:'get_orders',token:TOKEN})})
+  .then(function(data){
+    if(data.error){showToast('Error: '+data.error);return;}
+    allOrders=data.orders||[];
+    renderDash();
+  })
+  .catch(function(){showToast('Failed to load. Try refreshing.');})
+  .finally(function(){btn.disabled=false;btn.textContent='\u8635 Refresh';});
+}
+
+function renderDash(){
+  var orders=allOrders;
+  var paid=orders.filter(function(o){return o.status==='Paid';});
+  var unpaid=orders.filter(function(o){return o.status!=='Paid';});
+  var tot=orders.reduce(function(s,o){return s+o.total;},0);
+  var paidAmt=paid.reduce(function(s,o){return s+o.total;},0);
+  var unpaidAmt=unpaid.reduce(function(s,o){return s+o.total;},0);
+
+  document.getElementById('kpi-guests').textContent=orders.length;
+  document.getElementById('kpi-paid').textContent=paid.length;
+  document.getElementById('kpi-unpaid').textContent=unpaid.length;
+  document.getElementById('kpi-total').textContent=krw(tot);
+  document.getElementById('kpi-paid-amt').textContent=krw(paidAmt)+' collected';
+  document.getElementById('kpi-unpaid-amt').textContent=krw(unpaidAmt)+' outstanding';
+  document.getElementById('guest-cnt').textContent=orders.length+' guest'+(orders.length!==1?'s':'');
+
+  var gl=document.getElementById('glist');
+  if(orders.length===0){
+    gl.innerHTML='<div class="empty"><div class="empty-ico">&#128205;</div><div>No orders yet.</div></div>';
+  } else {
+    gl.innerHTML=orders.map(renderGuestCard).join('');
+  }
+  renderItemsSummary(orders);
+}
+
+function renderGuestCard(o){
+  var isPaid=o.status==='Paid';
+  var init=o.name.split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
+  var items=Array.isArray(o.items)?o.items:[];
+
+  var rows=items.map(function(it){
+    return '<div class="irow"><span>'+it.name+(it.qty>1?' x'+it.qty:'')+'</span><span style="font-weight:500">'+krw(it.subtotal||it.price*it.qty)+'</span></div>';
+  }).join('');
+
+  var mypBox='';
+  if(o.myp&&o.myp.trim()){
+    var tm=o.myp.match(/Toasts?:\s*([^|]+)/i);
+    var sm=o.myp.match(/Salad:\s*(.+)/i);
+    var toasts=tm?tm[1].trim():o.myp;
+    var salad=sm?sm[1].trim():'';
+    mypBox='<div class="myp-det">'+
+      '<div class="myp-det-ttl">&#127869;&#65039; Make Your Plate &#8212; Kitchen Details</div>'+
+      '<div class="myp-det-row"><span class="myp-det-lbl">Toasts</span><span>'+toasts+'</span></div>'+
+      (salad?'<div class="myp-det-row"><span class="myp-det-lbl">Salad</span><span>'+salad+'</span></div>':'')+
+    '</div>';
+  }
+
+  return '<div class="gc" id="gc'+o.rowIndex+'">'+
+    '<div class="gc-hd" onclick="togCard('+o.rowIndex+')">'+
+      '<div class="gc-av">'+init+'</div>'+
+      '<div class="gc-meta">'+
+        '<div class="gc-name">'+o.name+'</div>'+
+        '<div class="gc-contacts">'+
+          '<a class="clink email" href="mailto:'+o.email+'" onclick="event.stopPropagation()">&#9993;&#65039; '+o.email+'</a>'+
+          '<a class="clink phone" href="tel:'+o.phone.replace(/[^0-9+]/g,'')+'" onclick="event.stopPropagation()">&#128222; '+o.phone+'</a>'+
+        '</div>'+
+      '</div>'+
+      '<div class="gc-right">'+
+        '<div class="gc-tot">'+krw(o.total)+'</div>'+
+        '<button class="pay-tog '+(isPaid?'paid':'unpaid')+'" id="ptbtn'+o.rowIndex+'" onclick="event.stopPropagation();togPaid('+o.rowIndex+')">'+(isPaid?'&#10003; Paid':'Unpaid')+'</button>'+
+        '<span class="gc-chev">&#9654;</span>'+
+      '</div>'+
+    '</div>'+
+    '<div class="gc-items"><div class="gc-items-in">'+rows+mypBox+'<div class="itot"><span>Total</span><span>'+krw(o.total)+'</span></div></div></div>'+
+  '</div>';
+}
+
+function togCard(idx){document.getElementById('gc'+idx).classList.toggle('open');}
+
+function togPaid(idx){
+  var btn=document.getElementById('ptbtn'+idx);
+  btn.disabled=true;var old=btn.textContent;btn.textContent='\u2026';
+  fetchJSON(ASU,{method:'POST',body:JSON.stringify({action:'toggle_paid',token:TOKEN,rowIndex:idx})})
+  .then(function(data){
+    if(data.error)throw new Error(data.error);
+    var order=allOrders.filter(function(o){return o.rowIndex===idx;})[0];
+    if(order)order.status=data.newStatus;
+    var isPaid=data.newStatus==='Paid';
+    btn.textContent=isPaid?'&#10003; Paid':'Unpaid';
+    btn.className='pay-tog '+(isPaid?'paid':'unpaid');
+    btn.disabled=false;
+    rerenderKpis();
+    showToast((order?order.name:'Guest')+' marked as '+data.newStatus);
+  })
+  .catch(function(){btn.textContent=old;btn.disabled=false;showToast('Failed. Try again.');});
+}
+
+function rerenderKpis(){
+  var paid=allOrders.filter(function(o){return o.status==='Paid';});
+  var unpaid=allOrders.filter(function(o){return o.status!=='Paid';});
+  var tot=allOrders.reduce(function(s,o){return s+o.total;},0);
+  document.getElementById('kpi-paid').textContent=paid.length;
+  document.getElementById('kpi-unpaid').textContent=unpaid.length;
+  document.getElementById('kpi-total').textContent=krw(tot);
+  document.getElementById('kpi-paid-amt').textContent=krw(paid.reduce(function(s,o){return s+o.total;},0))+' collected';
+  document.getElementById('kpi-unpaid-amt').textContent=krw(unpaid.reduce(function(s,o){return s+o.total;},0))+' outstanding';
+}
+
+function sendReminders(){
+  var unpaid=allOrders.filter(function(o){return o.status!=='Paid';});
+  if(unpaid.length===0){showToast('All guests are paid! &#127881;');return;}
+  if(!confirm('Send reminder emails to '+unpaid.length+' unpaid guest(s)?'))return;
+  var btn=document.getElementById('btn-remind');
+  btn.disabled=true;btn.textContent='&#128233; Sending\u2026';
+  fetchJSON(ASU,{method:'POST',body:JSON.stringify({action:'send_reminders',token:TOKEN,orders:unpaid})})
+  .then(function(data){if(data.error)throw new Error(data.error);showToast('Reminders sent to '+unpaid.length+' guest(s) &#10003;');})
+  .catch(function(){showToast('Failed to send reminders.');})
+  .finally(function(){btn.disabled=false;btn.textContent='&#128233; Send Reminders';});
+}
+
+function renderItemsSummary(orders){
+  var counts={};var mypOrders=[];
+  orders.forEach(function(o){
+    (o.items||[]).forEach(function(it){
+      if(it.name&&it.name.indexOf('Make Your Plate')===0)return;
+      if(!counts[it.name])counts[it.name]={qty:0,sub:0};
+      counts[it.name].qty+=it.qty;
+      counts[it.name].sub+=it.subtotal||it.price*it.qty;
+    });
+    if(o.myp&&o.myp.trim()){
+      var mypItem=(o.items||[]).filter(function(it){return it.name&&it.name.indexOf('Make Your Plate')===0;})[0];
+      mypOrders.push({guest:o.name,myp:o.myp,qty:mypItem?mypItem.qty:1,sub:mypItem?mypItem.subtotal:0});
+    }
+  });
+  var entries=Object.keys(counts).map(function(k){return {name:k,qty:counts[k].qty,sub:counts[k].sub};}).filter(function(e){return e.qty>0;}).sort(function(a,b){return b.qty-a.qty;});
+  var totQty=entries.reduce(function(s,e){return s+e.qty;},0)+(mypOrders.reduce(function(s,m){return s+m.qty;},0));
+  var totSub=entries.reduce(function(s,e){return s+e.sub;},0)+(mypOrders.reduce(function(s,m){return s+m.sub;},0));
+  document.getElementById('items-cnt').textContent=totQty+' total items';
+  if(entries.length===0&&mypOrders.length===0){document.getElementById('items-sum').innerHTML='<div class="empty"><div class="empty-ico">&#127869;&#65039;</div><div>No items yet.</div></div>';return;}
+  var rows=entries.map(function(e){return '<div class="itable-row"><span>'+e.name+'</span><span>'+e.qty+'</span><span>'+krw(e.sub)+'</span></div>';}).join('');
+  var mypSec='';
+  if(mypOrders.length>0){
+    var mypRows=mypOrders.map(function(m){
+      var tm=m.myp.match(/Toasts?:\s*([^|]+)/i);
+      var sm=m.myp.match(/Salad:\s*(.+)/i);
+      var toasts=tm?tm[1].trim():m.myp;
+      var salad=sm?sm[1].trim():'';
+      return '<div class="myp-kitchen-row"><div class="myp-kitchen-guest">'+m.guest+(m.qty>1?' (x'+m.qty+')':'')+'</div><div class="myp-kitchen-det">&#127838; '+toasts+(salad?' &nbsp;&middot;&nbsp; &#129347; '+salad:'')+'</div></div>';
+    }).join('');
+    mypSec='<div class="myp-kitchen"><div class="myp-kitchen-hd"><span>&#127869;&#65039; Make Your Plate &#8212; Kitchen Order Sheet</span></div>'+mypRows+'</div>';
+  }
+  document.getElementById('items-sum').innerHTML=
+    '<div class="itable">'+
+    '<div class="itable-hd"><span>Item</span><span>Qty</span><span>Subtotal</span></div>'+
+    rows+
+    '<div class="itable-ft"><span>Total</span><span>'+totQty+'</span><span>'+krw(totSub)+'</span></div>'+
+    '</div>'+mypSec;
+}
+
+function buildKSHTML(orders){
+  var now=new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
+  var tot=orders.reduce(function(s,o){return s+o.total;},0);
+  var paidAmt=orders.filter(function(o){return o.status==='Paid';}).reduce(function(s,o){return s+o.total;},0);
+  var unpaidAmt=orders.filter(function(o){return o.status!=='Paid';}).reduce(function(s,o){return s+o.total;},0);
+  var counts={};var mypOrders=[];
+  orders.forEach(function(o){
+    (o.items||[]).forEach(function(it){
+      if(it.name&&it.name.indexOf('Make Your Plate')===0)return;
+      if(!counts[it.name])counts[it.name]={qty:0,sub:0};
+      counts[it.name].qty+=it.qty;counts[it.name].sub+=it.subtotal||it.price*it.qty;
+    });
+    if(o.myp&&o.myp.trim()){
+      var mypItem=(o.items||[]).filter(function(it){return it.name&&it.name.indexOf('Make Your Plate')===0;})[0];
+      mypOrders.push({guest:o.name,myp:o.myp,qty:mypItem?mypItem.qty:1});
+    }
+  });
+  var entries=Object.keys(counts).map(function(k){return {name:k,qty:counts[k].qty,sub:counts[k].sub};}).filter(function(e){return e.qty>0;}).sort(function(a,b){return b.qty-a.qty;});
+  var itemRowsHtml=entries.map(function(e){return '<tr><td>'+e.name+'</td><td style="text-align:center;font-weight:700">'+e.qty+'</td><td style="text-align:right">'+krw(e.sub)+'</td></tr>';}).join('');
+  var mypCards=mypOrders.map(function(m){
+    var tm=m.myp.match(/Toasts?:\s*([^|]+)/i);var sm=m.myp.match(/Salad:\s*(.+)/i);
+    var toasts=tm?tm[1].trim():m.myp;var salad=sm?sm[1].trim():'';
+    return '<div class="ks-myp"><div class="ks-myp-name">'+m.guest+(m.qty>1?' (x'+m.qty+')':'')+'</div><div class="ks-myp-det">&#127838; Toasts: <strong>'+toasts+'</strong>'+(salad?'<br>&#129347; Salad: <strong>'+salad+'</strong>':'')+'</div></div>';
+  }).join('');
+  var guestInv=orders.map(function(o){
+    var isPaid=o.status==='Paid';
+    var items=Array.isArray(o.items)?o.items:[];
+    var ilines=items.map(function(it){return '<div class="ks-guest-item"><span>'+it.name+(it.qty>1?' x'+it.qty:'')+'</span><span>'+krw(it.subtotal||it.price*it.qty)+'</span></div>';}).join('');
+    var mypNote=o.myp?'<div style="font-size:11px;color:#7a6f63;padding:4px 0;border-top:1px solid #f0e8dc;margin-top:4px">&#127869;&#65039; '+o.myp+'</div>':'';
+    return '<div class="ks-guest">'+
+      '<div class="ks-guest-hd">'+
+        '<div><div class="ks-guest-name">'+o.name+'</div><div style="font-size:11px;color:#7a6f63;margin-top:2px">'+o.email+' &middot; '+o.phone+'</div></div>'+
+        '<div style="display:flex;align-items:center;gap:8px"><span class="ks-guest-st '+(isPaid?'paid':'unpaid')+'">'+(isPaid?'&#10003; Paid':'&#9203; Unpaid')+'</span><strong style="font-family:serif;font-size:16px">'+krw(o.total)+'</strong></div>'+
+      '</div>'+
+      '<div class="ks-guest-items">'+ilines+mypNote+'</div>'+
+    '</div>';
+  }).join('');
+
+  return '<div class="ks-hdr"><h2>&#127869;&#65039; Kitchen Order Sheet</h2>'+
+    '<p>Farewell Luncheon for Dominique &nbsp;&middot;&nbsp; Tuesday, 31 March 2026 &nbsp;&middot;&nbsp; 11:00 AM &nbsp;&middot;&nbsp; Bakery Caf&eacute; 292LU</p>'+
+    '<p style="margin-top:4px;font-size:11px;color:#a09589">Generated: '+now+'</p></div>'+
+    '<div class="ks-meta">'+
+    '<span>&#128101; Guests: <strong>'+orders.length+'</strong></span>'+
+    '<span>&#10003; Paid: <strong>'+orders.filter(function(o){return o.status==='Paid';}).length+'</strong></span>'+
+    '<span>&#9203; Unpaid: <strong>'+orders.filter(function(o){return o.status!=='Paid';}).length+'</strong></span>'+
+    '<span>&#128181; Total Due: <strong>'+krw(tot)+'</strong></span>'+
+    '<span>Collected: <strong>'+krw(paidAmt)+'</strong></span>'+
+    '<span>Outstanding: <strong>'+krw(unpaidAmt)+'</strong></span>'+
+    '</div>'+
+    (entries.length>0?'<div class="ks-sec"><div class="ks-sec-ttl">All Items &#8212; Aggregated Prep List</div><table class="ks-tbl"><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Subtotal</th></tr>'+itemRowsHtml+'</table></div>':'')+
+    (mypOrders.length>0?'<div class="ks-sec"><div class="ks-sec-ttl">Make Your Plate &#8212; Individual Details</div>'+mypCards+'</div>':'')+
+    '<div class="ks-sec"><div class="ks-sec-ttl">Per-Guest Invoices</div>'+guestInv+'</div>'+
+    '<div class="ks-tot"><span>Grand Total Due</span><span>'+krw(tot)+'</span></div>';
+}
+
+function openKS(){
+  if(allOrders.length===0){showToast('No orders yet.');return;}
+  document.getElementById('ks-content').innerHTML=buildKSHTML(allOrders);
+  document.getElementById('ks-modal').classList.add('show');
+}
+function closeKS(){document.getElementById('ks-modal').classList.remove('show');}
+
+function printKS(){
+  var content=document.getElementById('ks-content').innerHTML;
+  var pd=document.getElementById('print-ks');
+  pd.innerHTML='<div style="max-width:900px;margin:0 auto;font-family:Arial,sans-serif">'+
+    '<style>.ks-hdr{text-align:center;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #1a1a2e;}.ks-hdr h2{font-size:22px;margin-bottom:4px;color:#1a1a2e;}.ks-hdr p{font-size:11px;color:#666;}.ks-meta{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;}.ks-meta span{font-size:12px;color:#555;}.ks-sec{margin-bottom:18px;}.ks-sec-ttl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#666;margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid #ddd;}.ks-tbl{width:100%;border-collapse:collapse;font-size:12px;}.ks-tbl th{text-align:left;padding:6px 10px;background:#1a1a2e;color:#fff;font-size:10px;}.ks-tbl th:last-child{text-align:right;}.ks-tbl td{padding:5px 10px;border-bottom:1px solid #eee;}.ks-tbl td:last-child{text-align:right;font-weight:700;}.ks-tbl tr:nth-child(even) td{background:#f9f9f9;}.ks-myp{background:#fff8ec;border:1px solid #ffe0a0;border-radius:4px;padding:9px 11px;margin-bottom:5px;page-break-inside:avoid;}.ks-myp-name{font-weight:700;font-size:12px;margin-bottom:2px;}.ks-myp-det{font-size:11px;color:#555;line-height:1.5;}.ks-tot{background:#1a1a2e;color:#fff;padding:9px 13px;border-radius:4px;display:flex;justify-content:space-between;align-items:center;font-weight:700;margin-top:14px;}.ks-tot span:last-child{font-size:18px;color:#b8873a;}.ks-guest{margin-bottom:10px;border:1px solid #ddd;border-radius:4px;overflow:hidden;page-break-inside:avoid;}.ks-guest-hd{background:#f5f0e8;padding:7px 11px;display:flex;justify-content:space-between;align-items:center;}.ks-guest-name{font-weight:700;font-size:12px;}.ks-guest-st{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;}.ks-guest-st.paid{background:#d4edda;color:#155724;}.ks-guest-st.unpaid{background:#fff3cd;color:#856404;}.ks-guest-items{padding:5px 11px;}.ks-guest-item{display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px solid #f0e8dc;}.ks-guest-item:last-child{border-bottom:none;}</style>'+
+    content+'</div>';
+  pd.style.display='block';
+  window.print();
+  setTimeout(function(){pd.style.display='none';},1500);
+}
+
+function emailKS(){
+  var btn=document.getElementById('btn-email-ks');
+  btn.disabled=true;btn.textContent='&#128231; Sending\u2026';
+  var htmlContent=buildKSHTML(allOrders);
+  fetchJSON(ASU,{method:'POST',body:JSON.stringify({action:'email_kitchen_sheet',token:TOKEN,htmlContent:htmlContent})})
+  .then(function(data){if(data.error)throw new Error(data.error);showToast('Kitchen sheet emailed to organizers &#10003;');})
+  .catch(function(){showToast('Failed to send email.');})
+  .finally(function(){btn.disabled=false;btn.textContent='&#128231; Email to Organizer';});
+}
+
+checkAuth();
+</script>
+</body>
+</html>
