@@ -319,7 +319,7 @@
         <input type="email" id="email-input" placeholder="Enter email address" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff;color:var(--ink);box-sizing:border-box;margin-bottom:8px;">
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);cursor:pointer;margin-bottom:12px;">
           <input type="checkbox" id="include-organizer" checked style="width:14px;height:14px;cursor:pointer;">
-          <span>Also send to organizer (<span style="color:var(--gold)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a0c8d9cfcecfcb8ecdc1d4d4c9d38ecec1c6e0c1d2cdd98ecdc9cc">[email&#160;protected]</a></span>)</span>
+          <span>Also send to organizer (<span style="color:var(--gold)">hyonok.mattis.naf@army.mil</span>)</span>
         </label>
         <button class="btn-action email" id="btn-email-sheet" onclick="emailKitchenSheet()" style="width:100%;">📧 Send</button>
       </div>
@@ -330,7 +330,7 @@
 <!-- Hidden print target -->
 <div id="print-kitchen-sheet" style="display:none"></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyVAXSiFTvDt4u4Rl78zD9UBoODSPmt0xjn2lvrj-kfskKmBXgZqoIGAxO9GmB8taWq/exec';
 
 const params = new URLSearchParams(window.location.search);
@@ -418,22 +418,18 @@ function renderGuestCard(o) {
     '</div>'
   ).join('');
 
-  // Parse MYP details — multi-plate (#1 Toasts:...\n#2 Toasts:...) and legacy
+  // Parse MYP details into structured display
   let mypBox = '';
   if (o.myp && o.myp.trim()) {
-    const lines = o.myp.split('\n').filter(l => l.trim());
-    const plateRows = lines.map(line => {
-      const label      = line.match(/^(#\d+)/);
-      const toastMatch = line.match(/Toasts?:\s*([^|]+)/i);
-      const saladMatch = line.match(/Salad:\s*(.+)/i);
-      const toasts = toastMatch ? toastMatch[1].trim() : '';
-      const salad  = saladMatch ? saladMatch[1].trim() : '';
-      return '<div class="myp-detail-row">'+(label?'<span class="myp-detail-label">'+label[1]+'</span>':'')+
-        '<span>'+(toasts?'🍞 '+toasts:'')+(toasts&&salad?' &nbsp;·&nbsp; ':'')+( salad?'🥗 '+salad:'')+'</span></div>';
-    }).join('');
+    // myp format: "Toasts: X, Y | Salad: Z"
+    const toastMatch = o.myp.match(/Toasts?:\s*([^|]+)/i);
+    const saladMatch = o.myp.match(/Salad:\s*(.+)/i);
+    const toasts = toastMatch ? toastMatch[1].trim() : o.myp;
+    const salad  = saladMatch ? saladMatch[1].trim() : '';
     mypBox = '<div class="myp-detail-box">'+
       '<div class="myp-detail-title">🍽️ Make Your Plate — Kitchen Details</div>'+
-      plateRows+
+      '<div class="myp-detail-row"><span class="myp-detail-label">Toasts</span><span>'+toasts+'</span></div>'+
+      (salad?'<div class="myp-detail-row"><span class="myp-detail-label">Salad</span><span>'+salad+'</span></div>':'')+
     '</div>';
   }
 
@@ -518,40 +514,26 @@ async function sendReminderAll() {
 
 // ── Items summary ─────────────────────────────────────────────
 function renderItemsSummary(orders) {
+  // ── 1. Aggregate all items across all guests ──────────────
   const counts={};
   const mypOrders=[];
 
   orders.forEach(o=>{
-    const mypItems=[];
     (o.items||[]).forEach(it=>{
-      const cleanName=it.name.replace(/\s*[×x]\d+\s*$/i,'').trim();
-      if(cleanName==='Make Your Plate'){
-        mypItems.push(it);
-        if(!counts['Make Your Plate'])counts['Make Your Plate']={qty:0,subtotal:0};
-        counts['Make Your Plate'].qty+=it.qty||1;
-        counts['Make Your Plate'].subtotal+=it.subtotal||it.price*(it.qty||1)||0;
-        return;
-      }
-      if(!counts[it.name])counts[it.name]={qty:0,subtotal:0};
-      counts[it.name].qty+=it.qty;
-      counts[it.name].subtotal+=it.subtotal||it.price*it.qty;
+      if(it.name&&it.name.startsWith('Make Your Plate')) return;
+      if(!counts[it.name]) counts[it.name]={qty:0,subtotal:0};
+      counts[it.name].qty += it.qty;
+      counts[it.name].subtotal += it.subtotal||it.price*it.qty;
     });
     if(o.myp&&o.myp.trim()){
-      const lines=o.myp.split('\n').filter(l=>l.trim());
-      const plates=lines.map((line,idx)=>{
-        const label=line.match(/^(#\d+)/);
-        const tm=line.match(/Toasts?:\s*([^|]+)/i);
-        const sm=line.match(/Salad:\s*(.+)/i);
-        const sub=mypItems[idx]?(mypItems[idx].subtotal||mypItems[idx].price*(mypItems[idx].qty||1)||0):0;
-        return{label:label?label[1]:'#'+(idx+1),toasts:tm?tm[1].trim():'',salad:sm?sm[1].trim():'',subtotal:sub};
-      });
-      mypOrders.push({guest:o.name,plates});
+      const mypItem=(o.items||[]).find(it=>it.name&&it.name.startsWith('Make Your Plate'));
+      mypOrders.push({guest:o.name,myp:o.myp,qty:mypItem?mypItem.qty:1,subtotal:mypItem?mypItem.subtotal:0});
     }
   });
 
   const entries=Object.entries(counts).filter(([,v])=>v.qty>0).sort((a,b)=>b[1].qty-a[1].qty);
-  const totalQty=entries.reduce((s,[,v])=>s+v.qty,0);
-  const totalSub=entries.reduce((s,[,v])=>s+v.subtotal,0);
+  const totalQty=entries.reduce((s,[,v])=>s+v.qty,0)+mypOrders.reduce((s,m)=>s+m.qty,0);
+  const totalSub=entries.reduce((s,[,v])=>s+v.subtotal,0)+mypOrders.reduce((s,m)=>s+m.subtotal,0);
 
   document.getElementById('items-count').textContent=totalQty+' total items';
 
@@ -560,6 +542,7 @@ function renderItemsSummary(orders) {
     return;
   }
 
+  // ── 2. Aggregated prep list ───────────────────────────────
   const prepRows=entries.map(([name,v])=>
     '<div class="items-table-row">'+
       '<span class="item-t-name">'+name+'</span>'+
@@ -568,45 +551,34 @@ function renderItemsSummary(orders) {
     '</div>'
   ).join('');
 
-  const mypPrepRows=mypOrders.map(m=>
-    m.plates.map(p=>
-      '<div class="items-table-row" style="background:#fffdf8;border-left:3px solid var(--gold)">'+
-        '<span class="item-t-name">🍽️ Make Your Plate '+p.label+
-          '<span style="font-size:11px;color:var(--muted)"> — '+m.guest+'</span>'+
-          '<br><span style="font-size:11px;color:var(--muted)">'+(p.toasts?'🍞 '+p.toasts:'')+( p.toasts&&p.salad?' &nbsp;·&nbsp; ':'')+( p.salad?'🥗 '+p.salad:'')+'</span>'+
-        '</span>'+
-        '<span class="item-t-qty">1</span>'+
-        '<span class="item-t-sub">'+krw(p.subtotal)+'</span>'+
-      '</div>'
-    ).join('')
-  ).join('');
+  const mypPrepRows=mypOrders.map(m=>{
+    const tm=m.myp.match(/Toasts?:\s*([^|]+)/i);
+    const sm=m.myp.match(/Salad:\s*(.+)/i);
+    const toasts=tm?tm[1].trim():m.myp;
+    const salad=sm?sm[1].trim():'';
+    return '<div class="items-table-row" style="background:#fffdf8;border-left:3px solid var(--gold)">'+
+      '<span class="item-t-name">🍽️ Make Your Plate'+
+        '<span style="font-size:11px;color:var(--muted)"> — '+m.guest+(m.qty>1?' ×'+m.qty:'')+'</span>'+
+        '<br><span style="font-size:11px;color:var(--muted)">🍞 '+toasts+(salad?' &nbsp;·&nbsp; 🥗 '+salad:'')+'</span>'+
+      '</span>'+
+      '<span class="item-t-qty">'+m.qty+'</span>'+
+      '<span class="item-t-sub">'+krw(m.subtotal)+'</span>'+
+    '</div>';
+  }).join('');
 
+  // ── 3. Per-guest tickets ──────────────────────────────────
   const guestTickets=orders.map((o,ticketIdx)=>{
     const ticketNum=String(ticketIdx+1).padStart(2,'0');
     const items=Array.isArray(o.items)?o.items:[];
     if(items.length===0) return '';
     const initials=(o.name||'?').replace(/^\[TEST\]\s*/,'').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
-    const itemLines=items.map((it,idx)=>{
-      const cleanName=it.name.replace(/\s*[×x]\d+\s*$/i,'').trim();
-      return '<div style="display:table;width:100%;padding:5px 0;border-bottom:1px solid rgba(226,217,204,.35);font-size:12px;table-layout:fixed">'+
-        '<span style="display:table-cell;width:18px;font-weight:700;color:#b8873a;vertical-align:top">'+(idx+1)+'.</span>'+
-        '<span style="display:table-cell;color:var(--ink);vertical-align:top">'+cleanName+'</span>'+
-        '<span style="display:table-cell;width:28px;text-align:center;font-weight:700;color:var(--muted);vertical-align:top">×'+it.qty+'</span>'+
-      '</div>';
-    }).join('');
-    let mypDetail='';
-    if(o.myp&&o.myp.trim()){
-      const lines=o.myp.split('\n').filter(l=>l.trim());
-      mypDetail=lines.map(line=>{
-        const label=line.match(/^(#\d+)/);
-        const tm=line.match(/Toasts?:\s*([^|]+)/i);
-        const sm=line.match(/Salad:\s*(.+)/i);
-        return '<div style="font-size:11px;color:var(--muted);padding:3px 0 3px 26px;border-top:1px solid rgba(226,217,204,.4);line-height:1.5">'+
-          (label?'<strong>'+label[1]+'</strong> ':'')+
-          (tm?'🍞 '+tm[1].trim():'')+( tm&&sm?' · ':'')+( sm?'🥗 '+sm[1].trim():'')+
-        '</div>';
-      }).join('');
-    }
+    const itemLines=items.map(it=>
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(226,217,204,.35);font-size:12px;gap:12px">'+
+        '<span style="color:var(--ink)">'+it.name+(it.qty>1?' <span style="color:var(--muted)">×'+it.qty+'</span>':'')+'</span>'+
+        '<span style="color:var(--gold);font-weight:600;white-space:nowrap">'+krw(it.subtotal||it.price*it.qty)+'</span>'+
+      '</div>'
+    ).join('');
+    const mypDetail=o.myp?'<div style="font-size:11px;color:var(--muted);padding:4px 0;border-top:1px solid rgba(226,217,204,.4);margin-top:2px">🍽️ '+o.myp+'</div>':'';
     const isPaid=o.status==='Paid';
     return '<div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;flex:1 1 260px;min-width:240px;max-width:340px">'+
       '<div style="background:var(--warm);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--border)">'+
@@ -630,6 +602,7 @@ function renderItemsSummary(orders) {
   }).join('');
 
   document.getElementById('items-summary').innerHTML=
+    // ── Section 1: Aggregated Prep List ──
     '<div style="background:#1c1917;border-radius:6px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">'+
       '<div>'+
         '<div style="font-size:13px;font-weight:700;color:#faf7f2">📋 Step 1 — Prep List</div>'+
@@ -641,9 +614,11 @@ function renderItemsSummary(orders) {
       '<div class="items-table-head"><span>Item</span><span style="text-align:center;min-width:50px">Total Qty</span><span style="text-align:right;min-width:90px">Subtotal</span></div>'+
       prepRows+mypPrepRows+
     '</div>'+
+    // ── Divider ──
     '<div style="border-top:2px dashed var(--border);margin:4px 0 24px;position:relative">'+
       '<span style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--cream);padding:0 12px;font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.08em;text-transform:uppercase">then plate per guest</span>'+
     '</div>'+
+    // ── Section 2: Per-Guest Tickets ──
     '<div style="background:var(--warm);border:1px solid var(--border);border-radius:6px;padding:12px 16px;margin-bottom:14px">'+
       '<div style="font-size:13px;font-weight:700;color:var(--ink)">🎫 Step 2 — Guest Tickets</div>'+
       '<div style="font-size:11px;color:var(--muted);margin-top:2px">Each card = one guest. Use these to plate and serve the right order to the right person.</div>'+
@@ -662,32 +637,21 @@ function buildKitchenSheetHTML(orders) {
 
   const counts={};const mypOrders=[];
   orders.forEach(o=>{
-    const mypItems=[];
     (o.items||[]).forEach(it=>{
-      const cleanName=it.name.replace(/\s*[×x]\d+\s*$/i,'').trim();
-      if(cleanName==='Make Your Plate'){
-        mypItems.push(it);
-        if(!counts['Make Your Plate'])counts['Make Your Plate']={qty:0};
-        counts['Make Your Plate'].qty+=it.qty||1;
-        return;
-      }
-      if(!counts[it.name])counts[it.name]={qty:0};
+      if(it.name&&it.name.startsWith('Make Your Plate'))return;
+      if(!counts[it.name])counts[it.name]={qty:0,subtotal:0};
       counts[it.name].qty+=it.qty;
+      counts[it.name].subtotal+=it.subtotal||it.price*it.qty;
     });
     if(o.myp&&o.myp.trim()){
-      const lines=o.myp.split('\n').filter(l=>l.trim());
-      const plates=lines.map((line,idx)=>{
-        const label=line.match(/^(#\d+)/);
-        const tm=line.match(/Toasts?:\s*([^|]+)/i);
-        const sm=line.match(/Salad:\s*(.+)/i);
-        return{label:label?label[1]:'#'+(idx+1),toasts:tm?tm[1].trim():'',salad:sm?sm[1].trim():''};
-      });
-      mypOrders.push({guest:o.name,plates});
+      const mypItem=(o.items||[]).find(it=>it.name&&it.name.startsWith('Make Your Plate'));
+      mypOrders.push({guest:o.name,myp:o.myp,qty:mypItem?mypItem.qty:1,subtotal:mypItem?mypItem.subtotal:0});
     }
   });
   const entries=Object.entries(counts).filter(([,v])=>v.qty>0).sort((a,b)=>b[1].qty-a[1].qty);
-  const totalQty=entries.reduce((s,[,v])=>s+v.qty,0);
+  const totalQty=entries.reduce((s,[,v])=>s+v.qty,0)+mypOrders.reduce((s,m)=>s+m.qty,0);
 
+  // ── Header ────────────────────────────────────────────────
   const headerHtml=
     '<div class="ks-header">'+
       '<h2>Order Sheet</h2>'+
@@ -698,6 +662,7 @@ function buildKitchenSheetHTML(orders) {
       '<div class="ks-meta-item">Total Items: <strong>'+totalQty+'</strong></div>'+
     '</div>';
 
+  // ── Prep list ─────────────────────────────────────────────
   const prepHtml=
     '<div class="ks-section">'+
       '<div class="ks-section-title">Aggregated Prep List</div>'+
@@ -706,49 +671,38 @@ function buildKitchenSheetHTML(orders) {
         entries.map(([name,v])=>
           '<tr><td>'+name+'</td><td style="text-align:center;font-weight:700">'+v.qty+'</td></tr>'
         ).join('')+
-        mypOrders.map(m=>
-          m.plates.map(p=>
-            '<tr style="background:#fffdf8"><td>Make Your Plate '+p.label+' — '+m.guest+
-              '<br><span style="font-size:11px;color:#7a6f63">'+(p.toasts?'🍞 '+p.toasts:'')+( p.toasts&&p.salad?' · ':'')+( p.salad?'🥗 '+p.salad:'')+'</span></td>'+
-              '<td style="text-align:center;font-weight:700">1</td></tr>'
-          ).join('')
-        ).join('')+
+        mypOrders.map(m=>{
+          const tm=m.myp.match(/Toasts?:\s*([^|]+)/i);
+          const sm=m.myp.match(/Salad:\s*(.+)/i);
+          const toasts=tm?tm[1].trim():m.myp;
+          const salad=sm?sm[1].trim():'';
+          return '<tr style="background:#fffdf8"><td>Make Your Plate — '+m.guest+(m.qty>1?' ×'+m.qty:'')+'<br>'+
+            '<span style="font-size:11px;color:#7a6f63">'+toasts+(salad?' | Salad: '+salad:'')+'</span></td>'+
+            '<td style="text-align:center;font-weight:700">'+m.qty+'</td></tr>';
+        }).join('')+
       '</table>'+
       '<div class="ks-total-bar">'+
         '<span>Grand Total</span><span>'+krw(grandTotal)+'</span>'+
       '</div>'+
     '</div>';
 
+  // ── Guest order tickets — card grid matching dashboard style ──
   const ticketsHtml=
     '<div class="ks-section">'+
-      '<div class="ks-section-title">Guest Order Tickets ('+orders.length+')</div>'+
+      '<div class="ks-section-title">Guest Order Tickets</div>'+
       '<div style="display:flex;flex-wrap:wrap;gap:12px;">'+
       orders.map((o,ticketIdx)=>{
         const ticketNum=String(ticketIdx+1).padStart(2,'0');
         const items=Array.isArray(o.items)?o.items:[];
         const initials=(o.name||'?').replace(/^\[TEST\]\s*/,'').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
-        const itemLines=items.map((it,idx)=>{
-          const cleanName=it.name.replace(/\s*[×x]\d+\s*$/i,'').trim();
-          return '<div style="display:table;width:100%;padding:5px 0;font-size:12px;color:#1c1917;border-bottom:1px solid #f0e8dc;table-layout:fixed">'+
-            '<span style="display:table-cell;width:18px;font-weight:700;color:#b8873a;vertical-align:top">'+(idx+1)+'.</span>'+
-            '<span style="display:table-cell;vertical-align:top">'+cleanName+'</span>'+
-            '<span style="display:table-cell;width:28px;text-align:center;font-weight:700;color:#7a6f63;vertical-align:top">×'+it.qty+'</span>'+
-          '</div>';
-        }).join('');
-        let mypNote='';
-        if(o.myp&&o.myp.trim()){
-          const lines=o.myp.split('\n').filter(l=>l.trim());
-          mypNote=lines.map(line=>{
-            const label=line.match(/^(#\d+)/);
-            const tm=line.match(/Toasts?:\s*([^|]+)/i);
-            const sm=line.match(/Salad:\s*(.+)/i);
-            return '<div style="font-size:11px;color:#7a6f63;padding:3px 0 3px 26px;border-top:1px solid #f0e8dc;line-height:1.5">'+
-              (label?'<strong>'+label[1]+'</strong> ':'')+
-              (tm?'🍞 '+tm[1].trim():'')+( tm&&sm?' · ':'')+( sm?'🥗 '+sm[1].trim():'')+
-            '</div>';
-          }).join('');
-        }
-        return '<div style="border:1px solid #e2d9cc;border-radius:8px;overflow:hidden;flex:1 1 220px;min-width:200px;max-width:320px;background:#fff;page-break-inside:avoid">'+
+        const itemLines=items.map(it=>
+          '<div style="padding:5px 0;font-size:12px;color:#1c1917;border-bottom:1px solid #f0e8dc;">'+
+            it.name+(it.qty>1?' ×'+it.qty:'')+
+          '</div>'
+        ).join('');
+        const mypNote=o.myp?
+          '<div style="font-size:11px;color:#7a6f63;padding:4px 0;border-top:1px solid #f0e8dc;margin-top:2px;">'+o.myp+'</div>':'';
+        return '<div style="border:1px solid #e2d9cc;border-radius:8px;overflow:hidden;flex:1 1 220px;min-width:200px;max-width:320px;background:#fff;">'+
           '<div style="background:#f5f0e8;padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e2d9cc;">'+
             '<div style="position:relative;flex-shrink:0;">'+
               '<div style="width:34px;height:34px;border-radius:50%;background:#1c1917;color:#b8873a;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;">'+initials+'</div>'+
@@ -777,34 +731,22 @@ function openKitchenSheet(){
 function closeKitchenModal(){document.getElementById('kitchen-modal').classList.remove('show');}
 
 function printKitchenSheet(){
-  const sheetContent=document.getElementById('kitchen-sheet-content').innerHTML;
-  const css='<style>'+
-    'body{font-family:Arial,sans-serif;max-width:800px;margin:24px auto;padding:0 16px;color:#1c1917;}'+
-    '.ks-header{text-align:center;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #1a1a2e;}'+
-    '.ks-header h2{font-size:22px;margin-bottom:6px;color:#1a1a2e;}'+
-    '.ks-header p{font-size:11px;color:#999;}'+
-    '.ks-meta{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:20px;padding:12px 16px;background:#f5f0e8;border-radius:6px;}'+
-    '.ks-meta-item{font-size:13px;color:#555;}'+
-    '.ks-section{margin-bottom:28px;}'+
-    '.ks-section-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #eee;}'+
-    '.ks-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px;}'+
-    '.ks-table th{text-align:left;padding:9px 12px;background:#1a1a2e;color:#fff;font-size:11px;font-weight:600;}'+
-    '.ks-table th:last-child{text-align:center;}'+
-    '.ks-table td{padding:8px 12px;border-bottom:1px solid #eee;}'+
-    '.ks-table tr:nth-child(even) td{background:#faf7f2;}'+
-    '.ks-table td:last-child{text-align:center;font-weight:700;}'+
-    '.ks-total-bar{background:#1a1a2e;color:#fff;padding:12px 16px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-weight:700;margin-top:10px;}'+
-    '.ks-total-bar span:last-child{font-size:20px;color:#b8873a;}'+
-    '.ks-guest-section{margin-bottom:12px;border:1px solid #e2d9cc;border-radius:6px;overflow:hidden;page-break-inside:avoid;}'+
-    '.ks-guest-head{background:#f5f0e8;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;}'+
-    '.ks-guest-name{font-weight:700;font-size:14px;color:#1c1917;}'+
-    '.ks-guest-items{padding:8px 14px;}'+
-    '.ks-guest-item{padding:5px 0;font-size:13px;border-bottom:1px solid #f0e8dc;}'+
-    '.ks-guest-item:last-child{border-bottom:none;}'+
-  '</style>';
-  const win=window.open('','_blank');
-  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Order Sheet</title>'+css+'</head><body>'+sheetContent+'<p style="text-align:center;font-size:11px;color:#aaa;margin-top:32px;padding-top:16px;border-top:1px solid #eee">Use your browser\u2019s Print or Share option to save as PDF</p></body></html>');
-  win.document.close();
+  const content = document.getElementById('kitchen-sheet-content').innerHTML;
+
+  const printContainer = document.getElementById('print-kitchen-sheet');
+  printContainer.innerHTML = content;
+
+  // Show print container
+  printContainer.style.display = 'block';
+
+  // Trigger native print (mobile-safe)
+  window.print();
+
+  // Cleanup after print dialog closes
+  setTimeout(() => {
+    printContainer.style.display = 'none';
+    printContainer.innerHTML = '';
+  }, 500);
 }
 
 
@@ -838,18 +780,15 @@ async function deleteTestOrder(rowIndex) {
     const card = document.getElementById('gc-'+rowIndex);
     if (card) card.remove();
     allOrders = allOrders.filter(o=>o.rowIndex!==rowIndex);
-    rerenderKpis()
-      renderItemsSummary(allOrders);
-    showToast('Test order deleted');
+    rerenderKpis();
+    showToast('Test order deleted ✓');
   } catch(e) {
-    showToast('Failed to delete test order.');
     if (btn) { btn.disabled=false; btn.textContent='🗑️ Delete'; }
+    showToast('Failed to delete: '+(e.message||'try again'));
   }
 }
 
-// ── Init ──────────────────────────────────────────────────────
 checkAuth();
 </script>
-
 </body>
 </html>
