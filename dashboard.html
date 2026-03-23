@@ -839,3 +839,17 @@ async function deleteTestOrder(rowIndex) {
     if (card) card.remove();
     allOrders = allOrders.filter(o=>o.rowIndex!==rowIndex);
     rerenderKpis()
+      renderItemsSummary(allOrders);
+    showToast('Test order deleted');
+  } catch(e) {
+    showToast('Failed to delete test order.');
+    if (btn) { btn.disabled=false; btn.textContent='🗑️ Delete'; }
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────
+checkAuth();
+</script>
+
+</body>
+</html>
